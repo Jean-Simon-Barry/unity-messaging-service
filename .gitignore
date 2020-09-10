@@ -1,0 +1,23 @@
+target/
+logs/
+
+*.db
+
+# IDE settings #
+.project
+.classpath
+.settings/
+.metadata/
+
+# IntelliJ Project Files #
+
+*.iml
+*.ipr
+*.iws
+.idea/
+
+*.checkstyle
+
+.DS_Store
+
+*.log
