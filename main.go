@@ -1,12 +1,20 @@
 package main
 
 import (
+	"fmt"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
+	"unity-messaging-service/messaging"
 	"unity-messaging-service/redis"
 	"unity-messaging-service/session"
 )
+
+var upgrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
+}
 
 func main() {
 	r := setupRouter()
@@ -25,6 +33,18 @@ func setupRouter() *gin.Engine {
 func homeHandler(c *gin.Context) {
 	cid := redis.RedisService.GenerateUserId()
 	_ = session.SessionService.SetCurrentUser(c, cid)
+	wsConn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+	if err != nil {
+		fmt.Println("failed to set websocket upgrade", err)
+		return
+	}
+
+	userClient := &messaging.Client{Hub:&messaging.MessageHub, Conn:wsConn, Send:make(chan []byte, 256), ClientId:cid}
+	userClient.Hub.Register <- userClient
+
+	go userClient.ReadMessages()
+	go userClient.WriteMessages()
+
 	c.JSON(200, gin.H{"user_id": cid})
 }
 
