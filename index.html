@@ -21,8 +21,16 @@
     };
 
     c.onopen = function () {
-        send(JSON.stringify({"receivers": [17, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28], "message": "hellooo"}))
-    }
+        send(JSON.stringify({"receivers": [17, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28], "message": "hello!!"}))
+    };
+
+    $.get(
+        "http://localhost:8080/list",
+        {},
+        function (data) {
+            $("#output").append("Welcome! Current connected users besides yourself are " + JSON.stringify(data['users']) + "\n");
+        }
+    );
 </script>
 
 </body>

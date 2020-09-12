@@ -34,7 +34,15 @@ func (h *Hub) Run() {
 	}
 }
 
-var MessageHub Hub
+func (h *Hub) GetConnectedClients(caller uint64) []uint64 {
+	keys := make([]uint64, 0, len(h.Clients))
+	for k, _ := range h.Clients {
+		if k != caller {
+			keys = append(keys, k)
+		}
+	}
+	return keys
+}
 
 func NewHub() *Hub {
 	return &Hub{

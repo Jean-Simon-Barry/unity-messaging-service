@@ -33,28 +33,54 @@ func setupRouter(hub *messaging.Hub) *gin.Engine {
 		wsHandler(hub, context)
 	})
 	r.GET("/identity", identityHandler)
+	r.GET("/list", func(context *gin.Context) {
+		listHandler(hub, context)
+	})
 	return r
 }
-
+/*
+	when users land on home page of the chat, an id is generated for them and set as cookie in their session
+	then we render the homepage back to them.
+ */
 func homeHandler(c *gin.Context) {
-	c.HTML(200, "index.html", nil)
-}
-
-func wsHandler(hub *messaging.Hub, c *gin.Context) {
 	cid := redis.RedisService.GenerateUserId()
 	_ = session.SessionService.SetCurrentUser(c, cid)
+	c.HTML(200, "index.html", nil)
+}
+/*
+	handles the web socket chat requests by registering the user into the hub (using their generated user id). Then we launch 2 goroutines
+	to read and write from/to their socket connection.
+ */
+func wsHandler(hub *messaging.Hub, c *gin.Context) {
 	wsConn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		fmt.Println("failed to set websocket upgrade", err)
 		return
 	}
 
+	cid, err := session.SessionService.GetCurrentUserId(c)
+	if err != nil {
+		fmt.Println("failed to set websocket upgrade", err)
+		_ = wsConn.Close()
+	}
 	userClient := &messaging.Client{Hub:hub, Conn:wsConn, Send:make(chan []byte, 256), ClientId:cid}
 	userClient.Hub.Register <- userClient
 
 	go userClient.ReadMessages()
 	go userClient.WriteMessages()
-	_ = wsConn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Welcome! You are client with id: %d", cid)))
+	_ = wsConn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("You are client with id: %d", cid)))
+}
+/*
+	lists all the users connected to the hub, except the current user calling the endpoint.
+ */
+func listHandler(hub *messaging.Hub, c *gin.Context) {
+	userId, err := session.SessionService.GetCurrentUserId(c)
+	if err != nil {
+		fmt.Println("user not logged into hub ", err)
+		return
+	}
+	connectedUsers := hub.GetConnectedClients(userId)
+	c.JSON(200, gin.H{"users": connectedUsers})
 }
 
 func identityHandler(c *gin.Context) {
