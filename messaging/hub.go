@@ -36,12 +36,11 @@ func (h *Hub) Run() {
 
 var MessageHub Hub
 
-func init() {
-	MessageHub := &Hub{
+func NewHub() *Hub {
+	return &Hub{
 		Relay:      make(chan HubMessage),
 		Register:   make(chan *Client),
 		Unregister: make(chan *Client),
 		Clients:    make(map[uint64]*Client),
 	}
-	go MessageHub.Run()
 }

@@ -1,0 +1,29 @@
+<html>
+<head>
+    <script src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
+</head>
+
+<body>
+<h3>Uni-Chat :)</h3>
+<pre id="output"></pre>
+{{/*Taken and modified from http://arlimus.github.io/articles/gin.and.gorilla/, much thanks the author!*/}}
+<script>
+    relayUrl = 'ws://localhost:8080/relay';
+    c = new WebSocket(relayUrl);
+
+    send = function (data) {
+        c.send(data)
+    };
+
+    c.onmessage = function (msg) {
+        $("#output").append((new Date()) + " <== " + msg.data + "\n");
+        console.log(msg)
+    };
+
+    c.onopen = function () {
+        send(JSON.stringify({"receivers": [17, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28], "message": "hellooo"}))
+    }
+</script>
+
+</body>
+</html>

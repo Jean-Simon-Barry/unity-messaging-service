@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/gorilla/websocket"
 	"log"
+	"strconv"
 )
 
 var (
@@ -33,6 +34,7 @@ func (c *Client) WriteMessages() {
 				err := c.Conn.WriteMessage(websocket.CloseMessage, []byte{})
 				if err != nil {
 					_ = fmt.Errorf("could not close %v", err)
+					return
 				}
 			}
 
@@ -74,7 +76,7 @@ func (c *Client) ReadMessages()  {
 			}
 			break
 		}
-		msgBody := bytes.TrimSpace(bytes.Replace([]byte(message.Message), newline, space, -1))
+		msgBody := bytes.TrimSpace(bytes.Replace([]byte(message.Message + " [from " + strconv.FormatUint(c.ClientId, 10) + "]"), newline, space, -1))
 		hubMessage := HubMessage{sender:c.ClientId, receivers:message.Receivers, msg: msgBody}
 		c.Hub.Relay <- hubMessage
 	}

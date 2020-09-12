@@ -17,20 +17,30 @@ var upgrader = websocket.Upgrader{
 }
 
 func main() {
-	r := setupRouter()
+	hub := messaging.NewHub()
+	go hub.Run()
+	r := setupRouter(hub)
+	r.LoadHTMLFiles("index.html")
 	_ = r.Run()
 }
 
-func setupRouter() *gin.Engine {
+func setupRouter(hub *messaging.Hub) *gin.Engine {
 	r := gin.Default()
 	r.StaticFile("/favicon.ico", "./resources/favicon.ico")
 	r.Use(sessions.Sessions("user_id", cookie.NewStore([]byte("secret"))))
 	r.GET("/", homeHandler)
+	r.GET("/relay", func(context *gin.Context) {
+		wsHandler(hub, context)
+	})
 	r.GET("/identity", identityHandler)
 	return r
 }
 
 func homeHandler(c *gin.Context) {
+	c.HTML(200, "index.html", nil)
+}
+
+func wsHandler(hub *messaging.Hub, c *gin.Context) {
 	cid := redis.RedisService.GenerateUserId()
 	_ = session.SessionService.SetCurrentUser(c, cid)
 	wsConn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
@@ -39,13 +49,12 @@ func homeHandler(c *gin.Context) {
 		return
 	}
 
-	userClient := &messaging.Client{Hub:&messaging.MessageHub, Conn:wsConn, Send:make(chan []byte, 256), ClientId:cid}
+	userClient := &messaging.Client{Hub:hub, Conn:wsConn, Send:make(chan []byte, 256), ClientId:cid}
 	userClient.Hub.Register <- userClient
 
 	go userClient.ReadMessages()
 	go userClient.WriteMessages()
-
-	c.JSON(200, gin.H{"user_id": cid})
+	_ = wsConn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("Welcome! You are client with id: %d", cid)))
 }
 
 func identityHandler(c *gin.Context) {
