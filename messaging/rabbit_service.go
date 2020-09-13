@@ -93,6 +93,7 @@ func init() {
 			if err != nil {
 				log.Printf("Error decoding JSON: %s", err)
 			}
+			MessageHub.QueueMessages <- *hubMessage
 			fmt.Printf("Received message from rabbit: %+v", hubMessage)
 			if err := d.Ack(false); err != nil {
 				log.Printf("Error acknowledging message : %s", err)
