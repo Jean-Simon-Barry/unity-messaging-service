@@ -1,5 +1,10 @@
 package messaging
 
+import (
+	"fmt"
+	"unity-messaging-service/redis"
+)
+
 type Hub struct {
 	// Registered clients mapped by id
 	Clients map[uint64]*Client
@@ -19,12 +24,18 @@ func (h *Hub) Run() {
 		select {
 		case client := <-h.Register:
 			h.Clients[client.ClientId] = client
+			redis.RedisService.CheckUserIn(client.ClientId)
 		case client := <-h.Unregister:
 			if _, ok := h.Clients[client.ClientId]; ok {
 				delete(h.Clients, client.ClientId)
 				close(client.Send)
+				redis.RedisService.CheckUserOut(client.ClientId)
 			}
 		case message := <-h.Relay:
+			queues := getClientQueues(message.receivers)
+			for _, queue := range queues {
+				fmt.Println(queue)
+			}
 			for _, cid := range message.receivers {
 				if client, ok := h.Clients[cid]; ok {
 					client.Send <- message.msg
@@ -42,6 +53,24 @@ func (h *Hub) GetConnectedClients(caller uint64) []uint64 {
 		}
 	}
 	return keys
+}
+
+func getClientQueues(clientIds []uint64) []string {
+	queueNames := make(map[string]bool)
+	for _, cid := range clientIds {
+		if name, ok := redis.RedisService.GetRabbitQueueName(cid); ok {
+			queueNames[name] = true
+		} else {
+			//TODO: figure out what to do when a user is not logged in. Should do anything? Drop in dead letter queue?
+		}
+	}
+	distinctQueues := make([]string, len(queueNames))
+	i := 0
+	for k := range queueNames {
+		distinctQueues[i] = k
+		i++
+	}
+	return distinctQueues
 }
 
 func NewHub() *Hub {

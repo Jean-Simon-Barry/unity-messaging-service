@@ -33,9 +33,7 @@ func setupRouter(hub *messaging.Hub) *gin.Engine {
 		wsHandler(hub, context)
 	})
 	r.GET("/identity", identityHandler)
-	r.GET("/list", func(context *gin.Context) {
-		listHandler(hub, context)
-	})
+	r.GET("/list", listHandler)
 	return r
 }
 /*
@@ -73,14 +71,13 @@ func wsHandler(hub *messaging.Hub, c *gin.Context) {
 /*
 	lists all the users connected to the hub, except the current user calling the endpoint.
  */
-func listHandler(hub *messaging.Hub, c *gin.Context) {
-	userId, err := session.SessionService.GetCurrentUserId(c)
-	if err != nil {
-		fmt.Println("user not logged into hub ", err)
-		return
+func listHandler(c *gin.Context) {
+	cid, _ := session.SessionService.GetCurrentUserId(c)
+	users := redis.RedisService.GetAllConnectedUsers(cid)
+	if users == nil {
+		users = []uint64{}
 	}
-	connectedUsers := hub.GetConnectedClients(userId)
-	c.JSON(200, gin.H{"users": connectedUsers})
+	c.JSON(200, gin.H{"users": users})
 }
 
 func identityHandler(c *gin.Context) {

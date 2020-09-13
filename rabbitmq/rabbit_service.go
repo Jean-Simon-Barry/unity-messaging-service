@@ -1,7 +1,6 @@
 package rabbitmq
 
 import (
-	"github.com/google/uuid"
 	"github.com/streadway/amqp"
 	"log"
 )
@@ -39,9 +38,11 @@ func init() {
 	ch, err := conn.Channel()
 	failOnError(err, "Failed to open a channel")
 
-	queueName, _ := uuid.NewRandom()
+	//queueName, _ := uuid.NewRandom()
+	//for the purpose of testing/debugging using only 1 instance, hardcode the queue name.
+	queueName := "single-unity-rabbit-q"
 	_, err = ch.QueueDeclare(
-		queueName.String(), // name
+		queueName, // name
 		false,              // durable
 		true,              // delete when unused
 		false,              // exclusive
@@ -61,7 +62,7 @@ func init() {
 	//	})
 	failOnError(err, "Failed to publish a message")
 
-	RabbitService = &rabbitService{conn, queueName.String()}
+	RabbitService = &rabbitService{conn, queueName}
 
 	defer ch.Close()
 }
