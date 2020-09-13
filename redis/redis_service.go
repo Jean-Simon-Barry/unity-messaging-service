@@ -11,7 +11,7 @@ import (
 type DataStore interface {
 	GenerateUserId() uint64
 	SetRabbitQueue(clientId uint64, queueName string)
-	GetRabbitQueueName(clientId uint64) (string, bool)
+	GetRabbitQueueNames(clientIds []uint64) (map[string]bool, bool)
 	CheckUserIn(clientId uint64)
 	CheckUserOut(clientId uint64)
 	GetAllConnectedUsers(caller uint64) []uint64
@@ -42,12 +42,20 @@ func (s *service) SetRabbitQueue(clientId uint64, queueName string) {
 	s.Set(ctx, buildRabbitQueueKey(clientId), queueName, 0)
 }
 
-func (s *service) GetRabbitQueueName(clientId uint64) (string, bool) {
-	userQueue, err := s.Get(ctx, buildRabbitQueueKey(clientId)).Result()
-	if err != nil {
-		return "", false
+func (s *service) GetRabbitQueueNames(clientIds []uint64) (map[string]bool, bool) {
+	queueKeys := make([]string, 0)
+	for _, clientId := range clientIds {
+		queueKeys = append(queueKeys, buildRabbitQueueKey(clientId))
 	}
-	return userQueue, true
+	r, err := s.MGet(ctx, queueKeys...).Result()
+	if err != nil {
+		return map[string]bool{}, false
+	}
+	queueNames := make(map[string]bool)
+	for _, queue := range r {
+		queueNames[queue.(string)] = true
+	}
+	return queueNames, true
 }
 
 func (s *service) CheckUserIn(clientId uint64) {

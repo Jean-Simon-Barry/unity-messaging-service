@@ -48,15 +48,10 @@ func (h *Hub) Run() {
 }
 
 func getClientQueues(clientIds []uint64) map[string]bool {
-	queueNames := make(map[string]bool)
-	for _, cid := range clientIds {
-		if name, ok := redis.RedisService.GetRabbitQueueName(cid); ok {
-			queueNames[name] = true
-		} else {
-			//TODO: figure out what to do when a user is not logged in. Should do anything? Drop in dead letter queue?
-		}
+	if queues, ok := redis.RedisService.GetRabbitQueueNames(clientIds); ok {
+		return queues
 	}
-	return queueNames
+	return map[string]bool{}
 }
 
 func NewHub() *Hub {
