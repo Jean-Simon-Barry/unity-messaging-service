@@ -78,6 +78,6 @@ func (c *Client) ReadMessages()  {
 		}
 		msgBody := bytes.TrimSpace(bytes.Replace([]byte(message.Message + " [from " + strconv.FormatUint(c.ClientId, 10) + "]"), newline, space, -1))
 		hubMessage := HubMessage{Sender:c.ClientId, Receivers:message.Receivers, Body: msgBody}
-		c.Hub.Relay <- hubMessage
+		c.Hub.ClientMessage <- hubMessage
 	}
 }

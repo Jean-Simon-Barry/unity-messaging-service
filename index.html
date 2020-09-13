@@ -28,7 +28,7 @@
         "http://localhost:8080/list",
         {},
         function (data) {
-            $("#output").append("Welcome! Current connected users besides yourself are " + JSON.stringify(data['users']) + "\n");
+            $("#output").append((new Date()) + " Welcome! Current connected users besides yourself are " + JSON.stringify(data['users']) + "\n");
         }
     );
 </script>

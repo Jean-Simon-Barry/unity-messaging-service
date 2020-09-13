@@ -1,6 +1,7 @@
 package messaging
 
 import (
+	mapset "github.com/deckarep/golang-set"
 	"unity-messaging-service/redis"
 )
 
@@ -9,7 +10,7 @@ type Hub struct {
 	Clients map[uint64]*Client
 
 	// Inbound messages from the clients.
-	Relay chan HubMessage
+	ClientMessage chan HubMessage
 
 	// Inbound messages from queue.
 	QueueMessages chan HubMessage
@@ -23,6 +24,26 @@ type Hub struct {
 
 var MessageHub Hub
 
+func toInterface(slice []uint64) []interface{} {
+	b := make([]interface{}, len(slice))
+	for i := range slice {
+		b[i] = slice[i]
+	}
+	return b
+}
+
+func getOnlineTargetClients(message HubMessage) []uint64 {
+	targetReceivers := mapset.NewSetFromSlice(toInterface(message.Receivers))
+	targetReceivers.Remove(message.Sender)
+	connectedUsers := mapset.NewSetFromSlice(toInterface(redis.RedisService.GetAllConnectedUsers(message.Sender)))
+	onLineClients := connectedUsers.Union(targetReceivers).ToSlice()
+	ids := make([]uint64, len(onLineClients))
+	for _, c := range onLineClients {
+		ids = append(ids, c.(uint64))
+	}
+	return ids
+}
+
 func (h *Hub) Run() {
 	for {
 		select {
@@ -35,11 +56,11 @@ func (h *Hub) Run() {
 				close(client.Send)
 				redis.RedisService.CheckUserOut(client.ClientId)
 			}
-		case message := <-h.Relay:
-			//TODO: check if users are actually online before sending message. If not...put in dead letter queue? save it in another store?
-			//TODO: exclude client from sending to himself
-			queues := getClientQueues(message.Receivers)
-			for queue := range queues {
+		case message := <-h.ClientMessage:
+			//TODO: What to do if client is offline ? Put in dead letter queue? save it in another store?
+			clients := getOnlineTargetClients(message)
+			targetQueues := getClientQueues(clients)
+			for queue := range targetQueues {
 				RabbitService.PostMessage(queue, message)
 			}
 		case message := <-h.QueueMessages:
@@ -61,7 +82,7 @@ func getClientQueues(clientIds []uint64) map[string]bool {
 
 func NewHub() *Hub {
 	MessageHub = Hub{
-		Relay:         make(chan HubMessage),
+		ClientMessage: make(chan HubMessage),
 		Register:      make(chan *Client),
 		Unregister:    make(chan *Client),
 		Clients:       make(map[uint64]*Client),
