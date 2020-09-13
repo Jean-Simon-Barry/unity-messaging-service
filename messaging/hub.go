@@ -1,7 +1,8 @@
 package messaging
 
 import (
-	"fmt"
+	"encoding/json"
+	"unity-messaging-service/rabbitmq"
 	"unity-messaging-service/redis"
 )
 
@@ -32,30 +33,21 @@ func (h *Hub) Run() {
 				redis.RedisService.CheckUserOut(client.ClientId)
 			}
 		case message := <-h.Relay:
-			queues := getClientQueues(message.receivers)
-			for _, queue := range queues {
-				fmt.Println(queue)
+			queues := getClientQueues(message.Receivers)
+			for queue := range queues {
+				jsonMessage, _ := json.Marshal(message)
+				rabbitmq.RabbitService.PostMessage(queue, jsonMessage)
 			}
-			for _, cid := range message.receivers {
+			for _, cid := range message.Receivers {
 				if client, ok := h.Clients[cid]; ok {
-					client.Send <- message.msg
+					client.Send <- message.Body
 				}
 			}
 		}
 	}
 }
 
-func (h *Hub) GetConnectedClients(caller uint64) []uint64 {
-	keys := make([]uint64, 0, len(h.Clients))
-	for k, _ := range h.Clients {
-		if k != caller {
-			keys = append(keys, k)
-		}
-	}
-	return keys
-}
-
-func getClientQueues(clientIds []uint64) []string {
+func getClientQueues(clientIds []uint64) map[string]bool {
 	queueNames := make(map[string]bool)
 	for _, cid := range clientIds {
 		if name, ok := redis.RedisService.GetRabbitQueueName(cid); ok {
@@ -64,13 +56,7 @@ func getClientQueues(clientIds []uint64) []string {
 			//TODO: figure out what to do when a user is not logged in. Should do anything? Drop in dead letter queue?
 		}
 	}
-	distinctQueues := make([]string, len(queueNames))
-	i := 0
-	for k := range queueNames {
-		distinctQueues[i] = k
-		i++
-	}
-	return distinctQueues
+	return queueNames
 }
 
 func NewHub() *Hub {

@@ -1,7 +1,7 @@
 package messaging
 
 type HubMessage struct {
-	sender uint64
-	receivers []uint64
-	msg []byte
+	Sender    uint64
+	Receivers []uint64
+	Body      []byte
 }

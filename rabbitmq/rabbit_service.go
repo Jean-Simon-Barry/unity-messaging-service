@@ -6,8 +6,10 @@ import (
 )
 type RabbitInterface interface {
 	GetQueueName() string
+	PostMessage(targetQueue string, msg []byte)
 }
 var RabbitService RabbitInterface
+const queueName = "single-unity-rabbit-q"
 
 type rabbitService struct {
 	*amqp.Connection
@@ -16,6 +18,23 @@ type rabbitService struct {
 
 func (r *rabbitService) GetQueueName() string {
 	return r.queueName
+}
+
+func (r *rabbitService) PostMessage(targetQueue string, msg []byte) {
+	ch, err := r.Channel()
+	failOnError(err, "Failed to open a channel")
+	err = ch.Publish(
+		"",
+		targetQueue,
+		false,
+		false,
+		amqp.Publishing{
+			ContentType: "text/plain",
+			Body:        msg,
+		})
+	if err != nil {
+		failOnError(err, "failed to publish message")
+	}
 }
 
 func failOnError(err error, msg string) {
@@ -40,29 +59,34 @@ func init() {
 
 	//queueName, _ := uuid.NewRandom()
 	//for the purpose of testing/debugging using only 1 instance, hardcode the queue name.
-	queueName := "single-unity-rabbit-q"
 	_, err = ch.QueueDeclare(
 		queueName, // name
-		false,              // durable
-		true,              // delete when unused
+		true,              // durable
+		false,              // delete when unused
 		false,              // exclusive
 		false,              // no-wait
 		nil,                // arguments
 	)
 	failOnError(err, "Failed to declare a queue")
-	//body := "Hello World!"
-	//err = ch.Publish(
-	//	"",     // exchange
-	//	q.Name, // routing key
-	//	false,  // mandatory
-	//	false,  // immediate
-	//	amqp.Publishing {
-	//		ContentType: "text/plain",
-	//		Body:        []byte(body),
-	//	})
-	failOnError(err, "Failed to publish a message")
+
+	messageChannel, err := ch.Consume(
+		queueName,
+		"",
+		false,
+		false,
+		false,
+		false,
+		nil,
+	)
+	failOnError(err, "failed to consume")
+	go func() {
+		for d:= range messageChannel {
+			log.Printf("Received message from rabbit: %s", d.Body)
+			if err := d.Ack(false); err != nil {
+				log.Printf("Error acknowledging message : %s", err)
+			}
+		}
+	}()
 
 	RabbitService = &rabbitService{conn, queueName}
-
-	defer ch.Close()
 }
