@@ -5,14 +5,12 @@ import (
 	"fmt"
 	"github.com/go-redis/redis/v8"
 	"strconv"
-	"unity-messaging-service/rabbitmq"
 )
 
 type DataStore interface {
 	GenerateUserId() uint64
-	SetRabbitQueue(clientId uint64, queueName string)
 	GetRabbitQueueNames(clientIds []uint64) (map[string]bool, bool)
-	CheckUserIn(clientId uint64)
+	CheckUserIn(clientId uint64, queueName string)
 	CheckUserOut(clientId uint64)
 	GetAllConnectedUsers(caller uint64) []uint64
 }
@@ -37,11 +35,6 @@ func (s *service) GenerateUserId() uint64 {
 	return uint64(incr.Val())
 }
 
-
-func (s *service) SetRabbitQueue(clientId uint64, queueName string) {
-	s.Set(ctx, buildRabbitQueueKey(clientId), queueName, 0)
-}
-
 func (s *service) GetRabbitQueueNames(clientIds []uint64) (map[string]bool, bool) {
 	queueKeys := make([]string, 0)
 	for _, clientId := range clientIds {
@@ -53,15 +46,16 @@ func (s *service) GetRabbitQueueNames(clientIds []uint64) (map[string]bool, bool
 	}
 	queueNames := make(map[string]bool)
 	for _, queue := range r {
-		queueNames[queue.(string)] = true
+		if queue != nil {
+			queueNames[queue.(string)] = true
+		}
 	}
 	return queueNames, true
 }
 
-func (s *service) CheckUserIn(clientId uint64) {
+func (s *service) CheckUserIn(clientId uint64, queueName string) {
 	s.SAdd(ctx, activeClientsKey, clientId)
-	name := rabbitmq.RabbitService.GetQueueName()
-	s.Set(ctx, buildRabbitQueueKey(clientId), name, 0)
+	s.Set(ctx, buildRabbitQueueKey(clientId), queueName, 0)
 }
 
 func (s *service) CheckUserOut(clientId uint64) {

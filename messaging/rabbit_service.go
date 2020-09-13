@@ -1,12 +1,14 @@
-package rabbitmq
+package messaging
 
 import (
+	"encoding/json"
+	"fmt"
 	"github.com/streadway/amqp"
 	"log"
 )
 type RabbitInterface interface {
 	GetQueueName() string
-	PostMessage(targetQueue string, msg []byte)
+	PostMessage(targetQueue string, msg HubMessage)
 }
 var RabbitService RabbitInterface
 const queueName = "single-unity-rabbit-q"
@@ -20,7 +22,12 @@ func (r *rabbitService) GetQueueName() string {
 	return r.queueName
 }
 
-func (r *rabbitService) PostMessage(targetQueue string, msg []byte) {
+func (r *rabbitService) PostMessage(targetQueue string, msg HubMessage) {
+	jsonMessage, err := json.Marshal(msg)
+	if err != nil {
+		failOnError(err, "could not marshall message for rmq")
+	}
+
 	ch, err := r.Channel()
 	failOnError(err, "Failed to open a channel")
 	err = ch.Publish(
@@ -30,7 +37,7 @@ func (r *rabbitService) PostMessage(targetQueue string, msg []byte) {
 		false,
 		amqp.Publishing{
 			ContentType: "text/plain",
-			Body:        msg,
+			Body:        jsonMessage,
 		})
 	if err != nil {
 		failOnError(err, "failed to publish message")
@@ -81,7 +88,12 @@ func init() {
 	failOnError(err, "failed to consume")
 	go func() {
 		for d:= range messageChannel {
-			log.Printf("Received message from rabbit: %s", d.Body)
+			hubMessage := &HubMessage{}
+			err := json.Unmarshal(d.Body, hubMessage)
+			if err != nil {
+				log.Printf("Error decoding JSON: %s", err)
+			}
+			fmt.Printf("Received message from rabbit: %+v", hubMessage)
 			if err := d.Ack(false); err != nil {
 				log.Printf("Error acknowledging message : %s", err)
 			}

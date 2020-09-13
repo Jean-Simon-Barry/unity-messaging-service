@@ -1,8 +1,6 @@
 package messaging
 
 import (
-	"encoding/json"
-	"unity-messaging-service/rabbitmq"
 	"unity-messaging-service/redis"
 )
 
@@ -25,7 +23,7 @@ func (h *Hub) Run() {
 		select {
 		case client := <-h.Register:
 			h.Clients[client.ClientId] = client
-			redis.RedisService.CheckUserIn(client.ClientId)
+			redis.RedisService.CheckUserIn(client.ClientId, RabbitService.GetQueueName())
 		case client := <-h.Unregister:
 			if _, ok := h.Clients[client.ClientId]; ok {
 				delete(h.Clients, client.ClientId)
@@ -33,10 +31,10 @@ func (h *Hub) Run() {
 				redis.RedisService.CheckUserOut(client.ClientId)
 			}
 		case message := <-h.Relay:
+			//TODO: check if users are actually online before sending message
 			queues := getClientQueues(message.Receivers)
 			for queue := range queues {
-				jsonMessage, _ := json.Marshal(message)
-				rabbitmq.RabbitService.PostMessage(queue, jsonMessage)
+				RabbitService.PostMessage(queue, message)
 			}
 			for _, cid := range message.Receivers {
 				if client, ok := h.Clients[cid]; ok {
