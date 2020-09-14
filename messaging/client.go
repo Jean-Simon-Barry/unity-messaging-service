@@ -71,13 +71,14 @@ func (c *Client) ReadMessages()  {
 		var message = &UserMessage{}
 		err := c.Conn.ReadJSON(&message)
 		if err != nil {
+			log.Printf("error: %v", err)
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				log.Printf("error: %v", err)
+				break
 			}
-			break
+		} else {
+			msgBody := bytes.TrimSpace(bytes.Replace([]byte(message.Message+" [from "+strconv.FormatUint(c.ClientId, 10)+"]"), newline, space, -1))
+			hubMessage := HubMessage{Sender: c.ClientId, Receivers: message.Receivers, Body: msgBody}
+			c.Hub.ClientMessage <- hubMessage
 		}
-		msgBody := bytes.TrimSpace(bytes.Replace([]byte(message.Message + " [from " + strconv.FormatUint(c.ClientId, 10) + "]"), newline, space, -1))
-		hubMessage := HubMessage{Sender:c.ClientId, Receivers:message.Receivers, Body: msgBody}
-		c.Hub.ClientMessage <- hubMessage
 	}
 }

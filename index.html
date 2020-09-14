@@ -5,6 +5,13 @@
 
 <body>
 <h3>Uni-Chat :)</h3>
+<div>
+    <label>Message</label>
+    <input type="text" name="Message" id="msg_input"/>
+    <label>Receivers (comma separated)</label>
+    <input type="text" name="Receivers" id="msg_receivers">
+    <button type="submit" id="submit_button">Send Message</button>
+</div>
 <pre id="output"></pre>
 {{/*Taken and modified from http://arlimus.github.io/articles/gin.and.gorilla/, much thanks the author!*/}}
 <script>
@@ -31,6 +38,13 @@
             }
         );
     };
+
+    $("#submit_button").click(function(){
+        let msg = $('#msg_input').val();
+        let receivers = $('#msg_receivers').val().replace(/\s/g, "").split(',').map(x=>+x);
+        let data = JSON.stringify({"receivers": receivers, "message": msg});
+        send(data);
+    })
 </script>
 
 </body>
