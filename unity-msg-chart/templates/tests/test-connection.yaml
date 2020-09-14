@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "{{ include "unity-msg-chart.fullname" . }}-test-connection"
+  labels:
+    {{- include "unity-msg-chart.labels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": test-success
+spec:
+  containers:
+    - name: wget
+      image: busybox
+      command: ['wget']
+      args: ['{{ include "unity-msg-chart.fullname" . }}:{{ .Values.service.port }}']
+  restartPolicy: Never

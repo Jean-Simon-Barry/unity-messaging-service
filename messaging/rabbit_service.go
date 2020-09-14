@@ -53,10 +53,10 @@ func failOnError(err error, msg string) {
 func init() {
 	var (
 		//TODO: read values from env
-		user = "guest"
-		host     = "localhost"
+		user = "user"
+		host     = "unity-msg-svc-rabbitmq"
 		port     = "5672"
-		password = "guest"
+		password = "password"
 	)
 	conn, err := amqp.Dial("amqp://"+ user + ":" + password + "@" + host + ":" + port + "/")
 	failOnError(err, "Failed to connect to RabbitMQ")

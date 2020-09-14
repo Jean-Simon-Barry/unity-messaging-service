@@ -77,7 +77,7 @@ func (s *service) GetAllConnectedUsers(caller uint64) []uint64 {
 func init() {
 	var (
 		//TODO: set from env
-		host     = "localhost"
+		host     = "redis-master"
 		port     = "6379"
 		password = ""
 	)
