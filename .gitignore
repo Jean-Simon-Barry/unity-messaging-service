@@ -15,7 +15,7 @@ logs/
 *.ipr
 *.iws
 .idea/
-unity-msg-chart/charts/**
+unity-msg-chart/charts/
 
 *.checkstyle
 
