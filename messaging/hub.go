@@ -2,6 +2,7 @@ package messaging
 
 import (
 	mapset "github.com/deckarep/golang-set"
+	"log"
 	"unity-messaging-service/redis"
 )
 
@@ -58,12 +59,14 @@ func (h *Hub) Run() {
 			}
 		case message := <-h.ClientMessage:
 			//TODO: What to do if client is offline ? Put in dead letter queue? save it in another store?
+			log.Printf("received new relay request from %d to clients %v", message.Sender, message.Receivers)
 			clients := getOnlineTargetClients(message)
 			targetQueues := getClientQueues(clients)
 			for queue := range targetQueues {
 				RabbitService.PostMessage(queue, message)
 			}
 		case message := <-h.QueueMessages:
+			log.Printf("received new message from queue request from %d to clients %v", message.Sender, message.Receivers)
 			for _, cid := range message.Receivers {
 				if client, ok := h.Clients[cid]; ok {
 					client.Send <- message.Body

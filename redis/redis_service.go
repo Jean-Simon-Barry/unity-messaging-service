@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"github.com/go-redis/redis/v8"
+	"log"
 	"strconv"
+	"sync"
 )
 
 type DataStore interface {
@@ -24,6 +26,7 @@ var RedisService DataStore
 const activeClientsKey = "activeClients"
 const ClientIdKey = "client:id"
 const ClientRabbitQueueKey = "client:rabbitQueue"
+var lock sync.Mutex
 
 func buildRabbitQueueKey(clientId uint64) string {
 	key := fmt.Sprintf("%s:%s", ClientRabbitQueueKey, strconv.FormatUint(clientId, 10))
@@ -31,7 +34,10 @@ func buildRabbitQueueKey(clientId uint64) string {
 }
 
 func (s *service) GenerateUserId() uint64 {
+	lock.Lock()
+	defer lock.Unlock()
 	incr := s.Client.Incr(ctx, ClientIdKey)
+	log.Printf("generated new client id %d", incr.Val())
 	return uint64(incr.Val())
 }
 
@@ -54,15 +60,19 @@ func (s *service) GetRabbitQueueNames(clientIds []uint64) (map[string]bool, bool
 }
 
 func (s *service) CheckUserIn(clientId uint64, queueName string) {
+	log.Printf("logging user %d into queue %s\n", clientId, queueName)
 	s.SAdd(ctx, activeClientsKey, clientId)
 	s.Set(ctx, buildRabbitQueueKey(clientId), queueName, 0)
 }
 
 func (s *service) CheckUserOut(clientId uint64) {
+	log.Printf("logging user %d out\n", clientId)
+	s.Del(ctx, buildRabbitQueueKey(clientId))
 	s.SRem(ctx, activeClientsKey, clientId)
 }
 
 func (s *service) GetAllConnectedUsers(caller uint64) []uint64 {
+	log.Println("fetching connected users")
 	a := s.SMembers(ctx, activeClientsKey).Val()
 	var activeUsers []uint64
 	for _, client := range a {
@@ -71,13 +81,14 @@ func (s *service) GetAllConnectedUsers(caller uint64) []uint64 {
 			activeUsers = append(activeUsers, uint64(i))
 		}
 	}
+	log.Printf("connected users are %v\n", activeUsers)
 	return activeUsers
 }
 
 func init() {
 	var (
 		//TODO: set from env
-		host     = "redis-master"
+		host     = "unity-msg-svc-redis-master"
 		port     = "6379"
 		password = ""
 	)
@@ -87,5 +98,10 @@ func init() {
 		Password: password,
 		DB:       0,
 	})
+
+	_, err := client.Ping(ctx).Result()
+	if err != nil {
+		log.Fatalf("%s: %s", "could not connect to redis", err)
+	}
 	RedisService = &service{client}
 }

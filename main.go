@@ -34,6 +34,9 @@ func setupRouter(hub *messaging.Hub) *gin.Engine {
 	})
 	r.GET("/identity", identityHandler)
 	r.GET("/list", listHandler)
+	r.GET("/health-check", func(c *gin.Context) {
+		c.JSON(200, gin.H{})
+	})
 	return r
 }
 /*

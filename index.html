@@ -8,7 +8,8 @@
 <pre id="output"></pre>
 {{/*Taken and modified from http://arlimus.github.io/articles/gin.and.gorilla/, much thanks the author!*/}}
 <script>
-    relayUrl = 'ws://localhost:8080/relay';
+    url = location.hostname + ':' + location.port
+    relayUrl = 'ws://'+ url + '/relay';
     c = new WebSocket(relayUrl);
 
     send = function (data) {
@@ -21,16 +22,15 @@
     };
 
     c.onopen = function () {
-        send(JSON.stringify({"receivers": [1], "message": "hello!!"}))
+        $.get(
+            "http://" + url + "/list",
+            {},
+            function (data) {
+                $("#output").append((new Date()) + " Welcome! Current connected users besides yourself are " + JSON.stringify(data['users']) + "\n");
+                send(JSON.stringify({"receivers": data['users'], "message": "hello!!"}))
+            }
+        );
     };
-
-    $.get(
-        "http://localhost:8080/list",
-        {},
-        function (data) {
-            $("#output").append((new Date()) + " Welcome! Current connected users besides yourself are " + JSON.stringify(data['users']) + "\n");
-        }
-    );
 </script>
 
 </body>

@@ -6,9 +6,9 @@ replicaCount: 1
 
 image:
   repository: jeansimonbarry/unity-messaging-service
-  pullPolicy: IfNotPresent
+  pullPolicy: Always
   # Overrides the image tag whose default is the chart appVersion.
-  tag: "latest"
+  tag: latest
 
 imagePullSecrets: []
 nameOverride: ""
@@ -80,3 +80,8 @@ rabbitmq:
   auth:
     username: user
     password: password
+
+redis:
+  usePassword: false
+  master:
+    disableCommands: []

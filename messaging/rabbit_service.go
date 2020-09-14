@@ -23,6 +23,7 @@ func (r *rabbitService) GetQueueName() string {
 }
 
 func (r *rabbitService) PostMessage(targetQueue string, msg HubMessage) {
+	log.Printf("posting message to queue\n")
 	jsonMessage, err := json.Marshal(msg)
 	if err != nil {
 		failOnError(err, "could not marshall message for rmq")
