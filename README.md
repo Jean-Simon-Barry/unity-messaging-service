@@ -2,12 +2,14 @@
 
 To deploy, you'll need [Helm](https://helm.sh/docs/intro/install/) and [Minikube](https://kubernetes.io/docs/tasks/tools/install-minikube) (for convenience)
 
+First, clone the repo and navigate to project root.
+
 start your minikube
 ```
 minikube start
 ```
 
-Once started, run
+Once started, run (from project root)
 ```
 helm install unity-msg-svc ./unity-msg-chart
 ```
@@ -22,6 +24,10 @@ Finally, once all pods healthy, you can access the app with
 ```
 minikube service unity-msg-svc-unity-msg-chart
 ```
+
+Then you should see the Uni-Chat!
+
+![Uni-chat](https://github.com/Jean-Simon-Barry/unity-messaging-service/blob/master/resources/uni_chat.png?raw=true)
 
 # Useful commands
 Accessing the redis-cli
