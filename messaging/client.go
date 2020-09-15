@@ -72,7 +72,7 @@ func (c *Client) ReadMessages()  {
 		err := c.Conn.ReadJSON(&message)
 		if err != nil {
 			log.Printf("error: %v", err)
-			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+			if websocket.IsCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				break
 			}
 		} else {
