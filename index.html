@@ -43,6 +43,7 @@
         let msg = $('#msg_input').val();
         let receivers = $('#msg_receivers').val().replace(/\s/g, "").split(',').map(x=>+x);
         let data = JSON.stringify({"receivers": receivers, "message": msg});
+        $("#output").append((new Date()) + msg + "\n");
         send(data);
     })
 </script>
