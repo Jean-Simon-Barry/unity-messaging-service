@@ -4,6 +4,10 @@ To deploy, you'll need [Helm](https://helm.sh/docs/intro/install/) and [Minikube
 
 First, clone the repo and navigate to project root.
 
+```
+helm repo add bitnami https://charts.bitnami.com/bitnami
+```
+
 start your minikube
 ```
 minikube start
