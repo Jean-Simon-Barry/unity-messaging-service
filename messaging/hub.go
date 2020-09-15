@@ -83,7 +83,7 @@ func getClientQueues(clientIds []uint64) map[string]bool {
 	return map[string]bool{}
 }
 
-func NewHub() *Hub {
+func NewHub() {
 	MessageHub = Hub{
 		ClientMessage: make(chan HubMessage),
 		Register:      make(chan *Client),
@@ -91,5 +91,5 @@ func NewHub() *Hub {
 		Clients:       make(map[uint64]*Client),
 		QueueMessages: make(chan HubMessage),
 	}
-	return &MessageHub
+	go MessageHub.Run()
 }

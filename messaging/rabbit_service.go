@@ -51,7 +51,7 @@ func failOnError(err error, msg string) {
 	}
 }
 
-func init() {
+func NewRabbitService() {
 	var (
 		//TODO: read values from env
 		user = "user"

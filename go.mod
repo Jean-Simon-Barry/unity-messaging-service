@@ -9,6 +9,7 @@ require (
 	github.com/go-playground/assert/v2 v2.0.1
 	github.com/go-playground/validator/v10 v10.3.0 // indirect
 	github.com/go-redis/redis/v8 v8.0.0-beta.11
+	github.com/golang/mock v1.4.4
 	github.com/golang/protobuf v1.4.2 // indirect
 	github.com/google/uuid v1.1.2
 	github.com/gorilla/websocket v1.4.2

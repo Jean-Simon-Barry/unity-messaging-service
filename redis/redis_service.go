@@ -85,7 +85,7 @@ func (s *service) GetAllConnectedUsers(caller uint64) []uint64 {
 	return activeUsers
 }
 
-func init() {
+func NewRedisService() {
 	var (
 		//TODO: set from env
 		host     = "unity-msg-svc-redis-master"

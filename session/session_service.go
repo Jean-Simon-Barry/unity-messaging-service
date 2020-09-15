@@ -6,7 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type SessionServiceInterface interface {
+type ServiceInterface interface {
 	SetCurrentUser(ctx *gin.Context, userId uint64) error
 	GetCurrentUserId(ctx *gin.Context) (uint64, error)
 }
@@ -14,7 +14,7 @@ type SessionServiceInterface interface {
 type sessionService struct{
 }
 
-var SessionService SessionServiceInterface
+var SessionService ServiceInterface
 const userIdKey = "user_id"
 
 func (s *sessionService) SetCurrentUser(c *gin.Context, userId uint64) error {
@@ -29,15 +29,15 @@ func (s *sessionService) SetCurrentUser(c *gin.Context, userId uint64) error {
 func (s *sessionService) GetCurrentUserId(c *gin.Context) (id uint64, err error) {
 	session := sessions.Default(c)
 	if session == nil {
-		return 0, errors.New("no session currently active")
+		return uint64(0), errors.New("no session currently active")
 	}
 	userId := session.Get(userIdKey)
 	if userId == nil {
-		return 0, errors.New("no user currently set")
+		return uint64(0), errors.New("no user currently set")
 	}
 	return userId.(uint64), nil
 }
 
-func init() {
+func NewSessionService() {
 	SessionService = &sessionService{}
 }
